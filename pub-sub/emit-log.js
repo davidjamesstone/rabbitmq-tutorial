@@ -1,26 +1,22 @@
 #!/usr/bin/env node
 
-const amqp = require('amqplib/callback_api')
+const amqp = require('amqplib')
 const exchange = 'logs'
 
-amqp.connect('amqp://localhost', (error0, connection) => {
-  if (error0) {
-    throw error0
-  }
-  connection.createChannel((error1, channel) => {
-    if (error1) {
-      throw error1
-    }
+async function run () {
+  const connection = await amqp.connect('amqp://localhost')
+  const channel = await connection.createChannel()
 
-    const msg = process.argv.slice(2).join(' ') || 'Hello World!'
+  const msg = process.argv.slice(2).join(' ') || 'Hello World!'
+  await channel.assertExchange(exchange, 'fanout', { durable: false })
+  channel.publish(exchange, '', Buffer.from(msg))
 
-    channel.assertExchange(exchange, 'fanout', { durable: false })
-    channel.publish(exchange, '', Buffer.from(msg))
+  console.log(' [x] Sent %s', msg)
 
-    console.log(' [x] Sent %s', msg)
-  })
   setTimeout(() => {
     connection.close()
     process.exit(0)
   }, 500)
-})
+}
+
+run()
